@@ -1,0 +1,40 @@
+{
+  "entities": {
+    "Property": {
+      "title": "Property",
+      "description": "A rental room or hostel listing near JKUAT.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "type": { "type": "string", "enum": ["Bedsitter", "Single Room", "Shared Room", "Hostel"] },
+        "distanceToCampus": { "type": "number", "description": "Walking distance in minutes" },
+        "location": { "type": "string" },
+        "coordinates": { 
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "amenities": { "type": "array", "items": { "type": "string" } },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "landlordName": { "type": "string" },
+        "landlordPhone": { "type": "string" },
+        "landlordWhatsApp": { "type": "string" },
+        "isVerified": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "price", "type", "landlordPhone"]
+    }
+  },
+  "firestore": {
+    "properties": {
+      "schema": "Property",
+      "description": "Collection of all rental listings."
+    }
+  }
+}
