@@ -1,13 +1,68 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Hero from '../components/Hero';
 import PropertyCard from '../components/PropertyCard';
-import { type Property, OperationType } from '../types';
+import { PropertyType, type Property } from '../types';
 import { Link } from 'react-router-dom';
-import { ChevronRight, Home as HomeIcon, Building2, Users, Tent, Loader2 } from 'lucide-react';
+import { ChevronRight, Home as HomeIcon, Building2, Users, Tent } from 'lucide-react';
 import { motion } from 'motion/react';
-import { db } from '../lib/firebase';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { handleFirestoreError } from '../lib/error-handler';
+
+// Mock data for initial view
+const FEATURED_PROPERTIES: Property[] = [
+  {
+    id: '1',
+    title: 'Executive Bedsitter behind Gate C',
+    description: 'Spacious bedsitter with tiled floors, constant water supply, and high-speed WiFi included. Very secure with CCTV.',
+    price: 8500,
+    type: PropertyType.BEDSITTER,
+    distanceToCampus: 5,
+    location: 'Gate C area',
+    amenities: ['WiFi', 'Tiles', 'Water', 'Security'],
+    images: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800'],
+    landlordId: 'landlord_1',
+    landlordName: 'John Doe',
+    landlordPhone: '0700000000',
+    landlordWhatsApp: '+254700000000',
+    isVerified: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: '2',
+    title: 'Modern Single Room - Gachororo',
+    description: 'Clean single room near main road. Quiet environment perfect for studying. Water available 24/7.',
+    price: 4500,
+    type: PropertyType.SINGLE_ROOM,
+    distanceToCampus: 12,
+    location: 'Gachororo',
+    amenities: ['Water', 'Security'],
+    images: ['https://images.unsplash.com/photo-1554995207-c18c203602cb?auto=format&fit=crop&q=80&w=800'],
+    landlordId: 'landlord_2',
+    landlordName: 'Jane Smith',
+    landlordPhone: '0711111111',
+    landlordWhatsApp: '+254711111111',
+    isVerified: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: '3',
+    title: 'Spacious Bedseater in Oasis',
+    description: 'Premium bedsitter with prepaid electricity, balcony, and near security post. 8 mins walk to Gate A.',
+    price: 9000,
+    type: PropertyType.BEDSITTER,
+    distanceToCampus: 8,
+    location: 'Oasis',
+    amenities: ['WiFi', 'Balcony', 'Water', 'Security'],
+    images: ['https://images.unsplash.com/photo-1536376074432-ca024541c882?auto=format&fit=crop&q=80&w=800'],
+    landlordId: 'landlord_3',
+    landlordName: 'Landlord X',
+    landlordPhone: '0722222222',
+    landlordWhatsApp: '+254722222222',
+    isVerified: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+];
 
 const CATEGORIES = [
   { name: 'Bedsitters', icon: HomeIcon, color: 'bg-blue-50 text-blue-600' },
@@ -17,28 +72,6 @@ const CATEGORIES = [
 ];
 
 export default function Home() {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchProperties() {
-      try {
-        const q = query(collection(db, 'properties'), orderBy('createdAt', 'desc'), limit(6));
-        const querySnapshot = await getDocs(q);
-        const fetchedProperties = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Property));
-        setProperties(fetchedProperties);
-      } catch (error) {
-        handleFirestoreError(error, OperationType.LIST, 'properties');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchProperties();
-  }, []);
   return (
     <div className="flex flex-col">
       <Hero />
@@ -78,23 +111,10 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="mt-10">
-            {loading ? (
-              <div className="flex h-64 items-center justify-center">
-                <Loader2 className="animate-spin text-brand-primary" size={48} />
-              </div>
-            ) : properties.length > 0 ? (
-              <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                {properties.map((property) => (
-                  <PropertyCard key={property.id} property={property} />
-                ))}
-              </div>
-            ) : (
-              <div className="flex h-64 flex-col items-center justify-center rounded-3xl bg-zinc-50 border border-dashed border-zinc-200">
-                <p className="text-zinc-500 font-medium">No rooms found in Juja yet.</p>
-                <Link to="/admin" className="mt-4 text-brand-primary font-bold hover:underline">Add the first one</Link>
-              </div>
-            )}
+          <div className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURED_PROPERTIES.map((property) => (
+              <PropertyCard key={property.id} property={property} />
+            ))}
           </div>
         </div>
       </section>

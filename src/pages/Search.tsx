@@ -1,47 +1,99 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search as SearchIcon, SlidersHorizontal, MapPin, X, Loader2 } from 'lucide-react';
+import { Search as SearchIcon, SlidersHorizontal, MapPin, X } from 'lucide-react';
 import PropertyCard from '../components/PropertyCard';
-import { PropertyType, type Property, OperationType } from '../types';
+import { PropertyType, type Property } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { db } from '../lib/firebase';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
-import { handleFirestoreError } from '../lib/error-handler';
+
+// Reusing mock data for search page
+const MOCK_PROPERTIES: Property[] = [
+  {
+    id: '1',
+    title: 'Executive Bedsitter behind Gate C',
+    description: 'Spacious bedsitter with tiled floors, constant water supply, and high-speed WiFi included. Very secure with CCTV.',
+    price: 8500,
+    type: PropertyType.BEDSITTER,
+    distanceToCampus: 5,
+    location: 'Gate C area',
+    amenities: ['WiFi', 'Tiles', 'Water', 'Security'],
+    images: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800'],
+    landlordId: 'landlord_1',
+    landlordName: 'John Doe',
+    landlordPhone: '0700000000',
+    landlordWhatsApp: '+254700000000',
+    isVerified: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: '2',
+    title: 'Modern Single Room - Gachororo',
+    description: 'Clean single room near main road. Quiet environment perfect for studying. Water available 24/7.',
+    price: 4500,
+    type: PropertyType.SINGLE_ROOM,
+    distanceToCampus: 12,
+    location: 'Gachororo',
+    amenities: ['Water', 'Security'],
+    images: ['https://images.unsplash.com/photo-1554995207-c18c203602cb?auto=format&fit=crop&q=80&w=800'],
+    landlordId: 'landlord_2',
+    landlordName: 'Jane Smith',
+    landlordPhone: '0711111111',
+    landlordWhatsApp: '+254711111111',
+    isVerified: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: '3',
+    title: 'Spacious Bedseater in Oasis',
+    description: 'Premium bedsitter with prepaid electricity, balcony, and near security post. 8 mins walk to Gate A.',
+    price: 9000,
+    type: PropertyType.BEDSITTER,
+    distanceToCampus: 8,
+    location: 'Oasis',
+    amenities: ['WiFi', 'Balcony', 'Water', 'Security'],
+    images: ['https://images.unsplash.com/photo-1536376074432-ca024541c882?auto=format&fit=crop&q=80&w=800'],
+    landlordId: 'landlord_3',
+    landlordName: 'Landlord X',
+    landlordPhone: '0722222222',
+    landlordWhatsApp: '+254722222222',
+    isVerified: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: '4',
+    title: 'Shared Room for 2 - Juja South',
+    description: 'Affordable shared room with bunk beds. Ideal for first years on a budget. Study area provided.',
+    price: 3500,
+    type: PropertyType.SHARED_ROOM,
+    distanceToCampus: 15,
+    location: 'Juja South',
+    amenities: ['Water', 'Security', 'Bunk Beds'],
+    images: ['https://images.unsplash.com/photo-1555854817-5b2260d1bd63?auto=format&fit=crop&q=80&w=800'],
+    landlordId: 'landlord_4',
+    landlordName: 'Shared Hostels Ltd',
+    landlordPhone: '0733333333',
+    landlordWhatsApp: '+254733333333',
+    isVerified: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+];
 
 export default function Search() {
   const [searchParams] = useSearchParams();
-  const [allProperties, setAllProperties] = useState<Property[]>([]);
-  const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [filteredProperties, setFilteredProperties] = useState<Property[]>(MOCK_PROPERTIES);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [priceRange, setPriceRange] = useState<number>(15000);
   const [selectedType, setSelectedType] = useState<string>(searchParams.get('type') || 'All');
 
-  const searchQuery = searchParams.get('q') || '';
+  const query = searchParams.get('q') || '';
 
   useEffect(() => {
-    async function fetchAll() {
-      try {
-        const q = query(collection(db, 'properties'), orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(q);
-        const properties = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Property));
-        setAllProperties(properties);
-      } catch (error) {
-        handleFirestoreError(error, OperationType.LIST, 'properties');
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchAll();
-  }, []);
-
-  useEffect(() => {
-    let results = allProperties.filter(p => 
-      p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      p.location.toLowerCase().includes(searchQuery.toLowerCase())
+    let results = MOCK_PROPERTIES.filter(p => 
+      p.title.toLowerCase().includes(query.toLowerCase()) || 
+      p.location.toLowerCase().includes(query.toLowerCase())
     );
 
     if (selectedType !== 'All') {
@@ -51,7 +103,7 @@ export default function Search() {
     results = results.filter(p => p.price <= priceRange);
 
     setFilteredProperties(results);
-  }, [searchQuery, selectedType, priceRange, allProperties]);
+  }, [query, selectedType, priceRange]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -140,11 +192,7 @@ export default function Search() {
 
         {/* Results Grid */}
         <div className="lg:col-span-3">
-          {loading ? (
-            <div className="flex h-64 items-center justify-center">
-              <Loader2 className="animate-spin text-brand-primary" size={48} />
-            </div>
-          ) : filteredProperties.length > 0 ? (
+          {filteredProperties.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               {filteredProperties.map((property) => (
                 <PropertyCard key={property.id} property={property} />

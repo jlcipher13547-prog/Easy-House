@@ -1,9 +1,13 @@
-import React from 'react';
-import { MapPin, Clock, CheckCircle, MessageSquare, Phone } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { MapPin, Clock, CheckCircle, MessageSquare, Phone, UserCheck } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import type { Property } from '../types';
+import type { Property, Landlord } from '../types';
+import { OperationType } from '../types';
 import { cn } from '../lib/utils';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { handleFirestoreError } from '../lib/error-handler';
 
 interface PropertyCardProps {
   property: Property;
@@ -11,7 +15,25 @@ interface PropertyCardProps {
 }
 
 export default function PropertyCard({ property }: PropertyCardProps) {
+  const [landlord, setLandlord] = useState<Landlord | null>(null);
   const whatsappUrl = `https://wa.me/${property.landlordWhatsApp.replace(/\+/g, '')}?text=Hi, I'm interested in your room listing: ${property.title} on EasyHouse.`;
+
+  useEffect(() => {
+    async function fetchLandlord() {
+      if (!property.landlordId) return;
+      
+      try {
+        const landlordDoc = await getDoc(doc(db, 'landlords', property.landlordId));
+        if (landlordDoc.exists()) {
+          setLandlord({ id: landlordDoc.id, ...landlordDoc.data() } as Landlord);
+        }
+      } catch (error) {
+        handleFirestoreError(error, OperationType.GET, `landlords/${property.landlordId}`);
+      }
+    }
+
+    fetchLandlord();
+  }, [property.landlordId]);
 
   return (
     <motion.div 
@@ -27,7 +49,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
           alt={property.title}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
-        <div className="absolute top-3 left-3 flex space-x-2">
+        <div className="absolute top-3 left-3 flex flex-wrap gap-2">
           <span className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-bold text-zinc-900 backdrop-blur-sm">
             {property.type}
           </span>
@@ -35,6 +57,12 @@ export default function PropertyCard({ property }: PropertyCardProps) {
             <span className="flex items-center space-x-1 rounded-full bg-brand-primary/90 px-2.5 py-1 text-xs font-bold text-white backdrop-blur-sm">
               <CheckCircle size={12} />
               <span>Verified</span>
+            </span>
+          )}
+          {landlord?.isVerified && (
+            <span className="flex items-center space-x-1 rounded-full bg-blue-500/90 px-2.5 py-1 text-xs font-bold text-white backdrop-blur-sm">
+              <UserCheck size={12} />
+              <span>Verified Host</span>
             </span>
           )}
         </div>
@@ -54,7 +82,18 @@ export default function PropertyCard({ property }: PropertyCardProps) {
           </Link>
         </div>
 
-        <div className="mt-2 flex flex-wrap gap-y-2 text-sm text-zinc-500">
+        <div className="mt-2 flex items-center mb-1">
+          <p className="text-xs font-medium text-zinc-600 flex items-center">
+            Host: {property.landlordName}
+            {landlord?.isVerified && (
+              <span className="ml-1 text-blue-500" title="Verified Landlord">
+                <UserCheck size={14} className="inline" />
+              </span>
+            )}
+          </p>
+        </div>
+
+        <div className="mt-1 flex flex-wrap gap-y-2 text-sm text-zinc-500">
           <div className="mr-4 flex items-center">
             <MapPin size={14} className="mr-1" />
             <span>{property.location}</span>

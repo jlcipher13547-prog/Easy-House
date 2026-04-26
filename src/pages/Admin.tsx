@@ -1,19 +1,13 @@
-import React, { useState, useRef } from 'react';
-import { db, auth, storage } from '../lib/firebase';
+import React, { useState } from 'react';
+import { db, auth } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { PropertyType } from '../types';
 import { OperationType } from '../types';
 import { handleFirestoreError } from '../lib/error-handler';
-import { ShieldCheck, Plus, Image as ImageIcon, X, Loader2 } from 'lucide-react';
+import { ShieldCheck, Plus } from 'lucide-react';
 
 export default function Admin() {
   const [loading, setLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -24,48 +18,14 @@ export default function Admin() {
     landlordPhone: '',
     landlordWhatsApp: '',
     landlordName: '',
+    landlordId: 'test-landlord-id', // Default for now
   });
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files: File[] = Array.from(e.target.files);
-      setSelectedFiles(prev => [...prev, ...files]);
-      
-      const newPreviews = files.map((file: File) => URL.createObjectURL(file));
-      setPreviews(prev => [...prev, ...newPreviews]);
-    }
-  };
-
-  const removeFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-    setPreviews(prev => {
-      URL.revokeObjectURL(prev[index]);
-      return prev.filter((_, i) => i !== index);
-    });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedFiles.length === 0) {
-      alert('Please upload at least one image.');
-      return;
-    }
     setLoading(true);
     
     try {
-      // 1. Upload Images
-      const imageUrls: string[] = [];
-      for (let i = 0; i < selectedFiles.length; i++) {
-        const file = selectedFiles[i];
-        setUploadProgress(`Uploading image ${i + 1} of ${selectedFiles.length}...`);
-        const imageRef = ref(storage, `properties/${Date.now()}-${file.name}`);
-        const snapshot = await uploadBytes(imageRef, file);
-        const url = await getDownloadURL(snapshot.ref);
-        imageUrls.push(url);
-      }
-
-      // 2. Create Document
-      setUploadProgress("Saving property details...");
       const docRef = await addDoc(collection(db, 'properties'), {
         ...formData,
         price: Number(formData.price),
@@ -73,14 +33,10 @@ export default function Admin() {
         isVerified: false,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        images: imageUrls,
-        landlordWhatsApp: formData.landlordWhatsApp || formData.landlordPhone,
+        images: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800'],
         amenities: ['Water', 'Security', 'WiFi'],
       });
-
       alert(`Property added with ID: ${docRef.id}`);
-      
-      // Reset form
       setFormData({
         title: '',
         description: '',
@@ -91,15 +47,12 @@ export default function Admin() {
         landlordPhone: '',
         landlordWhatsApp: '',
         landlordName: '',
+        landlordId: 'test-landlord-id',
       });
-      setSelectedFiles([]);
-      setPreviews([]);
-      if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'properties');
     } finally {
       setLoading(false);
-      setUploadProgress(null);
     }
   };
 
@@ -114,7 +67,7 @@ export default function Admin() {
 
         <form onSubmit={handleSubmit} className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">
           <div className="col-span-full">
-            <label className="block text-sm font-bold text-zinc-700 font-display">Property Title</label>
+            <label className="block text-sm font-bold text-zinc-700">Property Title</label>
             <input 
               type="text" 
               required
@@ -126,41 +79,7 @@ export default function Admin() {
           </div>
 
           <div className="col-span-full">
-            <label className="block text-sm font-bold text-zinc-700 font-display">Property Images</label>
-            <div className="mt-2 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-              {previews.map((preview, idx) => (
-                <div key={idx} className="group relative aspect-square overflow-hidden rounded-xl bg-zinc-100">
-                  <img src={preview} alt="preview" className="h-full w-full object-cover" />
-                  <button 
-                    type="button"
-                    onClick={() => removeFile(idx)}
-                    className="absolute top-1 right-1 rounded-full bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex aspect-square flex-col items-center justify-center rounded-xl border-2 border-dashed border-zinc-200 bg-zinc-50 hover:bg-zinc-100 transition-colors"
-              >
-                <ImageIcon className="mb-1 text-zinc-400" size={24} />
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Add Image</span>
-              </button>
-            </div>
-            <input 
-              type="file" 
-              multiple 
-              accept="image/*" 
-              ref={fileInputRef} 
-              onChange={handleFileChange} 
-              className="hidden" 
-            />
-          </div>
-
-          <div className="col-span-full">
-            <label className="block text-sm font-bold text-zinc-700 font-display">Description</label>
+            <label className="block text-sm font-bold text-zinc-700">Description</label>
             <textarea 
               required
               rows={4}
@@ -172,7 +91,7 @@ export default function Admin() {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-zinc-700 font-display">Monthly Rent (Kes)</label>
+            <label className="block text-sm font-bold text-zinc-700">Monthly Rent (Kes)</label>
             <input 
               type="number" 
               required
@@ -183,7 +102,7 @@ export default function Admin() {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-zinc-700 font-display">Room Type</label>
+            <label className="block text-sm font-bold text-zinc-700">Room Type</label>
             <select 
               className="mt-1 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 outline-none focus:border-brand-primary"
               value={formData.type}
@@ -194,7 +113,7 @@ export default function Admin() {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-zinc-700 font-display">Location in Juja</label>
+            <label className="block text-sm font-bold text-zinc-700">Location in Juja</label>
             <input 
               type="text" 
               required
@@ -206,7 +125,7 @@ export default function Admin() {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-zinc-700 font-display">Walk time to JKUAT (Min)</label>
+            <label className="block text-sm font-bold text-zinc-700">Walk time to JKUAT (Min)</label>
             <input 
               type="number" 
               required
@@ -217,7 +136,7 @@ export default function Admin() {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-zinc-700 font-display">Landlord Name</label>
+            <label className="block text-sm font-bold text-zinc-700">Landlord Name</label>
             <input 
               type="text" 
               required
@@ -228,7 +147,7 @@ export default function Admin() {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-zinc-700 font-display">Phone Number</label>
+            <label className="block text-sm font-bold text-zinc-700">Phone Number</label>
             <input 
               type="tel" 
               required
@@ -239,23 +158,25 @@ export default function Admin() {
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-bold text-zinc-700">Landlord ID (Firestore Ref)</label>
+            <input 
+              type="text" 
+              required
+              className="mt-1 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 outline-none focus:border-brand-primary"
+              placeholder="e.g. landlord_123"
+              value={formData.landlordId}
+              onChange={e => setFormData({...formData, landlordId: e.target.value})}
+            />
+          </div>
+
           <div className="col-span-full">
             <button 
               type="submit" 
               disabled={loading}
-              className="flex w-full flex-col items-center justify-center space-y-1 rounded-2xl bg-brand-primary py-4 text-lg font-black text-white shadow-xl shadow-brand-primary/20 hover:bg-brand-primary/90 disabled:opacity-50"
+              className="flex w-full items-center justify-center space-x-2 rounded-2xl bg-brand-primary py-4 text-lg font-black text-white shadow-xl shadow-brand-primary/20 hover:bg-brand-primary/90 disabled:opacity-50"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="animate-spin" size={24} />
-                  <span className="text-xs font-bold uppercase tracking-widest">{uploadProgress}</span>
-                </>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <Plus size={24} />
-                  <span>List Property</span>
-                </div>
-              )}
+              {loading ? <span>Saving...</span> : <><Plus size={24} /><span>List Property</span></>}
             </button>
           </div>
         </form>

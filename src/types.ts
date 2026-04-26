@@ -5,6 +5,15 @@ export enum PropertyType {
   HOSTEL = 'Hostel',
 }
 
+export interface Landlord {
+  id: string;
+  name: string;
+  phone: string;
+  isVerified: boolean;
+  avatarUrl?: string;
+  createdAt: any;
+}
+
 export interface Property {
   id: string;
   title: string;
@@ -19,6 +28,7 @@ export interface Property {
   };
   amenities: string[];
   images: string[];
+  landlordId: string;
   landlordName: string;
   landlordPhone: string;
   landlordWhatsApp: string;

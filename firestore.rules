@@ -14,14 +14,22 @@ service cloud.firestore {
 
     // Validation Helpers
     function isValidProperty(data) {
-      return data.keys().hasAll(['title', 'price', 'type', 'landlordPhone']) 
+      return data.keys().hasAll(['title', 'price', 'type', 'landlordPhone', 'landlordId']) 
         && data.title is string && data.title.size() <= 100
         && data.price is number && data.price >= 0
         && data.type in ['Bedsitter', 'Single Room', 'Shared Room', 'Hostel']
         && data.landlordPhone is string && data.landlordPhone.size() <= 20
+        && data.landlordId is string && data.landlordId.size() <= 128
         && (data.get('description', '') is string && data.description.size() <= 2000)
         && (data.get('amenities', []) is list && data.amenities.size() <= 20)
         && (data.get('images', []) is list && data.images.size() <= 10);
+    }
+
+    function isValidLandlord(data) {
+      return data.keys().hasAll(['name', 'phone', 'isVerified'])
+        && data.name is string && data.name.size() <= 100
+        && data.phone is string && data.phone.size() <= 20
+        && data.isVerified is bool;
     }
 
     match /properties/{propertyId} {
@@ -46,6 +54,15 @@ service cloud.firestore {
         );
 
       allow delete: if isSignedIn(); // Basic MVP protection
+    }
+
+    match /landlords/{landlordId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isValidId(landlordId) && isValidLandlord(incoming());
+      allow update: if isSignedIn() && isValidLandlord(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'phone', 'avatarUrl'])
+      );
+      allow delete: if false; // Admins only (not implemented)
     }
   }
 }

@@ -21,6 +21,7 @@
         },
         "amenities": { "type": "array", "items": { "type": "string" } },
         "images": { "type": "array", "items": { "type": "string" } },
+        "landlordId": { "type": "string", "description": "Reference to the landlord" },
         "landlordName": { "type": "string" },
         "landlordPhone": { "type": "string" },
         "landlordWhatsApp": { "type": "string" },
@@ -28,13 +29,31 @@
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["title", "price", "type", "landlordPhone"]
+      "required": ["title", "price", "type", "landlordPhone", "landlordId"]
+    },
+    "Landlord": {
+      "title": "Landlord",
+      "description": "A property owner or agent.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "isVerified": { "type": "boolean" },
+        "avatarUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "phone", "isVerified"]
     }
   },
   "firestore": {
     "properties": {
       "schema": "Property",
       "description": "Collection of all rental listings."
+    },
+    "landlords": {
+      "schema": "Landlord",
+      "description": "Collection of verified landlords."
     }
   }
 }
